@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><style>
+@font-face {
+  font-family: "Optimistic";
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url("/fonts/OptimisticAI_VF_Optimized.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Optimistic Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/OptimisticMono_W_TextRegular.woff2") format("woff2");
+}
+:where(html) {
+  font-family: "Optimistic", system-ui, sans-serif;
+}
+:where(code, pre, kbd, samp) {
+  font-family: "Optimistic Mono", ui-monospace, monospace;
+}
+</style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0078d4">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Notepad Lite</title>
+<style>
+:root {
+  --bg: #f3f3f3;
+  --bg-alt: #ffffff;
+  --text: #000000;
+  --text-muted: #605e5c;
+  --border: #e1dfdd;
+  --accent: #0078d4;
+  --accent-hover: #106ebe;
+  --menu-hover: #e5f1fb;
+  --menu-active: #cce4f7;
+  --shadow: rgba(0,0,0,0.1);
+  --scrollbar: #c8c6c4;
+  --scrollbar-hover: #a19f9d;
+}
+
+body.dark {
+  --bg: #202020;
+  --bg-alt: #2d2d2d;
+  --text: #ffffff;
+  --text-muted: #a19f9d;
+  --border: #3b3b3b;
+  --accent: #60cdff;
+  --accent-hover: #4cb9f0;
+  --menu-hover: #333333;
+  --menu-active: #3f3f3f;
+  --shadow: rgba(0,0,0,0.3);
+  --scrollbar: #5a5a5a;
+  --scrollbar-hover: #6e6e6e;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+.menubar {
+  background: var(--bg-alt);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  padding: 0 8px;
+  user-select: none;
+  flex-shrink: 0;
+  height: 32px;
+  align-items: center;
+}
+
+.menu-item {
+  position: relative;
+}
+
+.menu-button {
+  background: transparent;
+  border: none;
+  color: var(--text);
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: inherit;
+  height: 32px;
+  line-height: 20px;
+}
+
+.menu-button:hover, .menu-button.active {
+  background: var(--menu-hover);
+}
+
+.dropdown {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 8px var(--shadow);
+  min-width: 200px;
+  z-index: 1000;
+  padding: 4px 0;
+}
+
+.dropdown.show {
+  display: block;
+}
+
+.dropdown-item {
+  padding: 8px 32px 8px 32px;
+  cursor: pointer;
+  white-space: nowrap;
+  position: relative;
+  font-size: 14px;
+}
+
+.dropdown-item:hover {
+  background: var(--menu-hover);
+}
+
+.dropdown-item.disabled {
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+.dropdown-check {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.editor-container {
+  flex: 1;
+  overflow: hidden;
+  background: var(--bg-alt);
+  position: relative;
+}
+
+#editor {
+  width: 100%;
+  height: 100%;
+  padding: 8px 12px;
+  outline: none;
+  white-space: nowrap;
+  overflow: auto;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+#editor::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+
+#editor::-webkit-scrollbar-track {
+  background: var(--bg-alt);
+}
+
+#editor::-webkit-scrollbar-thumb {
+  background: var(--scrollbar);
+  border: 3px solid var(--bg-alt);
+  border-radius: 7px;
+}
+
+#editor::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-hover);
+}
+
+#editor::-webkit-scrollbar-corner {
+  background: var(--bg-alt);
+}
+
+.statusbar {
+  background: var(--bg-alt);
+  border-top: 1px solid var(--border);
+  padding: 4px 16px;
+  font-size: 12px;
+  color: var(--text-muted);
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  height: 24px;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.4);
+  z-index: 2000;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal.show {
+  display: flex;
+}
+
+.modal-content {
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 16px var(--shadow);
+  width: 90%;
+  max-width: 320px;
+  padding: 24px;
+}
+
+.modal-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.modal-row {
+  margin-bottom: 16px;
+}
+
+.modal-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.modal-input {
+  width: 100%;
+  padding: 6px 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.modal-input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.modal-btn {
+  padding: 6px 16px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 14px;
+  font-family: inherit;
+  min-width: 80px;
+}
+
+.modal-btn:hover {
+  background: var(--menu-hover);
+}
+
+.modal-btn.primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.modal-btn.primary:hover {
+  background: var(--accent-hover);
+}
+
+input[type="color"] {
+  height: 32px;
+  padding: 2px;
+  cursor: pointer;
+}
+
+@media (max-width: 400px) {
+  .menubar {
+    padding: 0 4px;
+  }
+  .menu-button {
+    padding: 6px 8px;
+    font-size: 13px;
+  }
+  .dropdown {
+    min-width: 180px;
+  }
+}
+</style>
+<link rel="manifest" id="manifest-placeholder">
+</head>
+<body>
+<div class="menubar" id="menubar">
+  <div class="menu-item">
+    <button class="menu-button" data-menu="file">File</button>
+    <div class="dropdown" id="file-menu">
+      <div class="dropdown-item" data-action="new">New</div>
+      <div class="dropdown-item" data-action="open">Open...</div>
+      <div class="dropdown-item" data-action="save">Save</div>
+      <div class="dropdown-item" data-action="saveas">Save As...</div>
+      <div class="dropdown-divider"></div>
+      <div class="dropdown-item" data-action="delete">Delete</div>
+      <div class="dropdown-item" data-action="duplicate">Duplicate</div>
+    </div>
+  </div>
+  <div class="menu-item">
+    <button class="menu-button" data-menu="edit">Edit</button>
+    <div class="dropdown" id="edit-menu">
+      <div class="dropdown-item" data-action="undo">Undo</div>
+      <div class="dropdown-item" data-action="redo">Redo</div>
+      <div class="dropdown-divider"></div>
+      <div class="dropdown-item" data-action="cut">Cut</div>
+      <div class="dropdown-item" data-action="copy">Copy</div>
+      <div class="dropdown-item" data-action="paste">Paste</div>
+    </div>
+  </div>
+  <div class="menu-item">
+    <button class="menu-button" data-menu="format">Format</button>
+    <div class="dropdown" id="format-menu">
+      <div class="dropdown-item" data-action="bold">Bold</div>
+      <div class="dropdown-item" data-action="italic">Italic</div>
+      <div class="dropdown-item" data-action="underline">Underline</div>
+      <div class="dropdown-item" data-action="strikethrough">Strikethrough</div>
+      <div class="dropdown-divider"></div>
+      <div class="dropdown-item" data-action="align-left">Align Left</div>
+      <div class="dropdown-item" data-action="align-center">Align Center</div>
+      <div class="dropdown-item" data-action="align-right">Align Right</div>
+      <div class="dropdown-divider"></div>
+      <div class="dropdown-item" data-action="font">Font...</div>
+      <div class="dropdown-item" data-action="size">Size...</div>
+      <div class="dropdown-item" data-action="color">Text Color...</div>
+      <div class="dropdown-item" data-action="highlight">Highlight Color...</div>
+    </div>
+  </div>
+  <div class="menu-item">
+    <button class="menu-button" data-menu="view">View</button>
+    <div class="dropdown" id="view-menu">
+      <div class="dropdown-item" data-action="darkmode">
+        <span class="dropdown-check" id="dark-check"></span>Dark Mode
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="editor-container">
+  <div id="editor" contenteditable="true" spellcheck="false"></div>
+</div>
+
+<div class="statusbar">
+  <span id="position">Ln 1, Col 1</span>
+</div>
+
+<div class="modal" id="font-modal">
+  <div class="modal-content">
+    <div class="modal-title">Font</div>
+    <div class="modal-row">
+      <label class="modal-label">Font family:</label>
+      <select class="modal-input" id="font-select">
+        <option value="'Consolas', 'Courier New', monospace">Consolas</option>
+        <option value="'Segoe UI', sans-serif">Segoe UI</option>
+        <option value="Arial, sans-serif">Arial</option>
+        <option value="'Times New Roman', serif">Times New Roman</option>
+        <option value="Georgia, serif">Georgia</option>
+        <option value="Verdana, sans-serif">Verdana</option>
+        <option value="'Courier New', monospace">Courier New</option>
+      </select>
+    </div>
+    <div class="modal-buttons">
+      <button class="modal-btn" data-action="cancel">Cancel</button>
+      <button class="modal-btn primary" data-action="apply-font">OK</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="size-modal">
+  <div class="modal-content">
+    <div class="modal-title">Font Size</div>
+    <div class="modal-row">
+      <label class="modal-label">Size (px):</label>
+      <input type="number" class="modal-input" id="size-input" min="8" max="72" value="14">
+    </div>
+    <div class="modal-buttons">
+      <button class="modal-btn" data-action="cancel">Cancel</button>
+      <button class="modal-btn primary" data-action="apply-size">OK</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="color-modal">
+  <div class="modal-content">
+    <div class="modal-title" id="color-modal-title">Text Color</div>
+    <div class="modal-row">
+      <input type="color" class="modal-input" id="color-input" value="#000000">
+    </div>
+    <div class="modal-buttons">
+      <button class="modal-btn" data-action="cancel">Cancel</button>
+      <button class="modal-btn primary" data-action="apply-color">OK</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="file-input" accept=".txt,.html,.md" style="display:none">
+
+<script>
+(function() {
+  const editor = document.getElementById('editor');
+  const posEl = document.getElementById('position');
+  const menubar = document.getElementById('menubar');
+  const fileInput = document.getElementById('file-input');
+  
+  let currentFileName = 'Untitled.txt';
+  let isDirty = false;
+  let fileHandle = null;
+  let colorMode = 'fore';
+  
+  // PWA: Inline Manifest
+  const manifest = {
+    name: 'Notepad Lite',
+    short_name: 'Notepad',
+    start_url: '.',
+    display: 'standalone',
+    background_color: '#ffffff',
+    theme_color: '#0078d4',
+    icons: [{
+      src: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjggMTI4Ij48cmVjdCB3aWR0aD0iMTI4IiBoZWlnaHQ9IjEyOCIgZmlsbD0iIzAwNzhkNCIvPjxwYXRoIGQ9Ik0zMiAzMmg2NGM4Ljg0IDAgMTYgNy4xNiAxNiAxNnYzNGMtOC44NCAwLTE2LTcuMTYtMTYtMTZIMzJjLTguODQgMC0xNiA3LjE2LTE2IDE2di0zNGMwLTguODQgNy4xNi0xNiAxNi0xNnptMCAxOGgxMnYxMkgzMnYtMTJ6bTE4IDBoMzZ2MTJINDh2LTEyeiIgZmlsbD0iI2ZmZiIvPjwvc3ZnPg==',
+      sizes: '128x128',
+      type: 'image/svg+xml'
+    }]
+  };
+  
+  const manifestBlob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+  const manifestURL = URL.createObjectURL(manifestBlob);
+  document.getElementById('manifest-placeholder').setAttribute('href', manifestURL);
+  
+  // PWA: Inline Service Worker
+  if ((location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1') && 'serviceWorker' in navigator) {
+    try {
+      const swCode = `
+        const CACHE = 'notepad-lite-v2';
+        self.addEventListener('install', e => {
+          e.waitUntil(caches.open(CACHE).then(c => c.add(location.href)));
+          self.skipWaiting();
+        });
+        self.addEventListener('activate', e => {
+          e.waitUntil(self.clients.claim());
+        });
+        self.addEventListener('fetch', e => {
+          e.respondWith(caches.match(e.request).then(r => r || fetch(e.request).catch(() => caches.match(location.href))));
+        });
+      `;
+      const swBlob = new Blob([swCode], {type: 'application/javascript'});
+      const swURL = URL.createObjectURL(swBlob);
+      navigator.serviceWorker.register(swURL).catch(()=>{});
+    } catch(e) {}
+  }
+  
+  // Theme - Dark Mode toggle with .dark class on body, localStorage, default light
+  function applyTheme() {
+    const dark = localStorage.getItem('notepad-theme') === 'dark';
+    if (dark) {
+      document.body.classList.add('dark');
+    } else {
+      document.body.classList.remove('dark');
+    }
+    document.getElementById('dark-check').textContent = dark ? '✓' : '';
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', dark ? '#2d2d2d' : '#0078d4');
+  }
+  applyTheme();
+  
+  // Menu handling
+  let openMenu = null;
+  
+  menubar.addEventListener('click', function(e) {
+    const btn = e.target.closest('.menu-button');
+    if (btn) {
+      e.stopPropagation();
+      const menuId = btn.dataset.menu + '-menu';
+      const menu = document.getElementById(menuId);
+      
+      document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('show'));
+      document.querySelectorAll('.menu-button').forEach(b => b.classList.remove('active'));
+      
+      if (openMenu !== menu) {
+        menu.classList.add('show');
+        btn.classList.add('active');
+        openMenu = menu;
+      } else {
+        openMenu = null;
+      }
+    }
+  });
+  
+  document.addEventListener('click', function() {
+    document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('show'));
+    document.querySelectorAll('.menu-button').forEach(b => b.classList.remove('active'));
+    openMenu = null;
+  });
+  
+  // Menu actions
+  document.querySelectorAll('.dropdown').forEach(menu => {
+    menu.addEventListener('click', function(e) {
+      const item = e.target.closest('.dropdown-item');
+      if (!item || item.classList.contains('disabled')) return;
+      e.stopPropagation();
+      handleAction(item.dataset.action);
+      document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('show'));
+      document.querySelectorAll('.menu-button').forEach(b => b.classList.remove('active'));
+      openMenu = null;
+    });
+  });
+  
+  function handleAction(action) {
+    switch(action) {
+      case 'new':
+        if (confirmDiscard()) {
+          editor.innerHTML = '';
+          currentFileName = 'Untitled.txt';
+          fileHandle = null;
+          isDirty = false;
+          updateTitle();
+        }
+        break;
+      case 'open':
+        if (confirmDiscard()) fileInput.click();
+        break;
+      case 'save':
+        saveFile(false);
+        break;
+      case 'saveas':
+        saveFile(true);
+        break;
+      case 'delete':
+        if (confirm('Delete all content?')) {
+          editor.innerHTML = '';
+          isDirty = true;
+        }
+        break;
+      case 'duplicate':
+        const sel = window.getSelection();
+        if (sel.rangeCount > 0 && sel.toString()) {
+          const range = sel.getRangeAt(0);
+          range.insertNode(range.cloneContents());
+        }
+        break;
+      case 'undo':
+        document.execCommand('undo');
+        break;
+      case 'redo':
+        document.execCommand('redo');
+        break;
+      case 'cut':
+        document.execCommand('cut');
+        break;
+      case 'copy':
+        document.execCommand('copy');
+        break;
+      case 'paste':
+        document.execCommand('paste');
+        break;
+      case 'bold':
+        document.execCommand('bold');
+        break;
+      case 'italic':
+        document.execCommand('italic');
+        break;
+      case 'underline':
+        document.execCommand('underline');
+        break;
+      case 'strikethrough':
+        document.execCommand('strikeThrough');
+        break;
+      case 'align-left':
+        document.execCommand('justifyLeft');
+        break;
+      case 'align-center':
+        document.execCommand('justifyCenter');
+        break;
+      case 'align-right':
+        document.execCommand('justifyRight');
+        break;
+      case 'font':
+        showModal('font-modal');
+        break;
+      case 'size':
+        showModal('size-modal');
+        break;
+      case 'color':
+        colorMode = 'fore';
+        document.getElementById('color-modal-title').textContent = 'Text Color';
+        showModal('color-modal');
+        break;
+      case 'highlight':
+        colorMode = 'back';
+        document.getElementById('color-modal-title').textContent = 'Highlight Color';
+        showModal('color-modal');
+        break;
+      case 'darkmode':
+        const current = localStorage.getItem('notepad-theme') === 'dark';
+        localStorage.setItem('notepad-theme', current ? 'light' : 'dark');
+        applyTheme();
+        break;
+    }
+  }
+  
+  // File operations
+  function confirmDiscard() {
+    return !isDirty || confirm('Discard changes?');
+  }
+  
+  fileInput.addEventListener('change', async function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    currentFileName = file.name;
+    const text = await file.text();
+    editor.innerHTML = '';
+    editor.innerText = text;
+    isDirty = false;
+    updateTitle();
+    fileInput.value = '';
+  });
+  
+  async function saveFile(saveAs) {
+    const content = editor.innerText;
+    const blob = new Blob([content], {type: 'text/plain'});
+    
+    if ('showSaveFilePicker' in window && (!fileHandle || saveAs)) {
+      try {
+        fileHandle = await window.showSaveFilePicker({
+          suggestedName: currentFileName,
+          types: [{description: 'Text Files', accept: {'text/plain': ['.txt']}}]
+        });
+        currentFileName = fileHandle.name;
+      } catch(e) {
+        if (e.name !== 'AbortError') fallbackSave(blob);
+        return;
+      }
+    }
+    
+    if (fileHandle && 'createWritable' in fileHandle) {
+      try {
+        const writable = await fileHandle.createWritable();
+        await writable.write(content);
+        await writable.close();
+        isDirty = false;
+        updateTitle();
+        return;
+      } catch(e) {}
+    }
+    
+    fallbackSave(blob);
+  }
+  
+  function fallbackSave(blob) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = currentFileName;
+    a.click();
+    URL.revokeObjectURL(url);
+    isDirty = false;
+    updateTitle();
+  }
+  
+  function updateTitle() {
+    document.title = (isDirty ? '* ' : '') + currentFileName + ' - Notepad Lite';
+  }
+  
+  // Editor events
+  editor.addEventListener('input', function() {
+    isDirty = true;
+    updateTitle();
+    updatePosition();
+  });
+  
+  editor.addEventListener('keyup', updatePosition);
+  editor.addEventListener('click', updatePosition);
+  
+  function updatePosition() {
+    const sel = window.getSelection();
+    if (!sel.rangeCount) return;
+    const range = sel.getRangeAt(0);
+    const preCaret = range.cloneRange();
+    preCaret.selectNodeContents(editor);
+    preCaret.setEnd(range.endContainer, range.endOffset);
+    const text = preCaret.toString();
+    const lines = text.split('\n');
+    const ln = lines.length;
+    const col = lines[lines.length - 1].length + 1;
+    posEl.textContent = `Ln ${ln}, Col ${col}`;
+  }
+  
+  // Modal handling
+  function showModal(id) {
+    document.getElementById(id).classList.add('show');
+  }
+  
+  function hideModals() {
+    document.querySelectorAll('.modal').forEach(m => m.classList.remove('show'));
+  }
+  
+  document.querySelectorAll('.modal').forEach(modal => {
+    modal.addEventListener('click', function(e) {
+      if (e.target === modal || e.target.dataset.action === 'cancel') {
+        hideModals();
+      } else if (e.target.dataset.action === 'apply-font') {
+        const font = document.getElementById('font-select').value;
+        document.execCommand('fontName', false, font);
+        hideModals();
+        editor.focus();
+      } else if (e.target.dataset.action === 'apply-size') {
+        const size = document.getElementById('size-input').value;
+        editor.style.fontSize = size + 'px';
+        hideModals();
+        editor.focus();
+      } else if (e.target.dataset.action === 'apply-color') {
+        const color = document.getElementById('color-input').value;
+        if (colorMode === 'fore') {
+          document.execCommand('foreColor', false, color);
+        } else {
+          document.execCommand('hiliteColor', false, color);
+        }
+        hideModals();
+        editor.focus();
+      }
+    });
+  });
+  
+  // Keyboard shortcuts
+  document.addEventListener('keydown', function(e) {
+    if (e.ctrlKey || e.metaKey) {
+      switch(e.key.toLowerCase()) {
+        case 's':
+          e.preventDefault();
+          saveFile(e.shiftKey);
+          break;
+        case 'o':
+          e.preventDefault();
+          if (confirmDiscard()) fileInput.click();
+          break;
+        case 'n':
+          e.preventDefault();
+          handleAction('new');
+          break;
+        case 'b':
+          e.preventDefault();
+          document.execCommand('bold');
+          break;
+        case 'i':
+          e.preventDefault();
+          document.execCommand('italic');
+          break;
+        case 'u':
+          e.preventDefault();
+          document.execCommand('underline');
+          break;
+      }
+    }
+  });
+  
+  // Auto-save to localStorage
+  setInterval(() => {
+    if (isDirty) {
+      localStorage.setItem('notepad-content', editor.innerHTML);
+      localStorage.setItem('notepad-filename', currentFileName);
+    }
+  }, 2000);
+  
+  // Restore from localStorage
+  const saved = localStorage.getItem('notepad-content');
+  if (saved) {
+    editor.innerHTML = saved;
+    currentFileName = localStorage.getItem('notepad-filename') || 'Untitled.txt';
+    updateTitle();
+  }
+  
+  updatePosition();
+  updateTitle();
+  editor.focus();
+})();
+</script>
+<script>(function(){document.addEventListener("click",function(e){var a=e.target.closest("[data-product-id]");if(!a)return;e.preventDefault();var pid=a.getAttribute("data-product-id");if(pid)parent.postMessage({type:"ecto-artifact-link-click",productId:pid},"*")})})();</script>
+<script>(function(){var loc=location.href.replace(/#.*$/,"");var ATTR_NAMES=["data-product-id","data-productid","data-product_id","product-id","productid","product_id","data-source-entity-id","source-entity-id","source_entity_id","data-product","data-metadata","data-meta"];var DATASET_KEYS=["productId","productid","product_id","sourceEntityId","sourceentityid","source_entity_id","product","metadata","meta"];function readProductId(value){if(typeof value!=="string"||value.length===0)return null;if(/^[0-9]{6,}$/.test(value))return value;var match=value.match(/(?:product(?:_|-)?id|source(?:_|-)?entity(?:_|-)?id)["'=:\s]+([0-9]{6,})/i);return match?match[1]:null}function extractProductId(start){for(var node=start;node&&node!==document.body;node=node.parentElement){for(var i=0;i<ATTR_NAMES.length;i++){var attrValue=node.getAttribute&&node.getAttribute(ATTR_NAMES[i]);var attrProductId=readProductId(attrValue);if(attrProductId)return attrProductId}var dataset=node.dataset||null;if(dataset){for(var j=0;j<DATASET_KEYS.length;j++){var dataValue=dataset[DATASET_KEYS[j]];var dataProductId=readProductId(dataValue);if(dataProductId)return dataProductId}}}return null}document.addEventListener("click",function(e){var target=e.target instanceof Element?e.target:null;if(!target)return;var a=target.closest?target.closest("a[href]"):null;if(!a||!a.href||!/^https?:\/\//.test(a.href))return;if(a.href.replace(/#.*$/,"")===loc)return;var productId=extractProductId(target)||extractProductId(a);if(!productId)return;e.preventDefault();parent.postMessage({type:"ecto-artifact-link-click",productId:productId},"*")},true)})();</script></body>
+</html>
